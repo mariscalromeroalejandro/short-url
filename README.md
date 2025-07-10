@@ -33,6 +33,13 @@ docker-compose up
 The service will be available at [http://localhost:8000](http://localhost:8000).  
 Open the `index.html` file in your browser to see the UI.
 
+## Running the frontend
+
+```bash
+cd url-shortener-app
+npm run start
+```
+
 ---
 
 ## 📚 API Endpoints

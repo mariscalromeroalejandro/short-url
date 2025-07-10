@@ -3,7 +3,7 @@ body.bg-body {
   font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
 }
 
-.revolut-card {
+.shortener-card {
   max-width: 460px;
   background-color: #fff;
   border-radius: 16px;
@@ -11,7 +11,7 @@ body.bg-body {
   padding: 40px;
 }
 
-.revolut-btn {
+.shortener-btn {
   background-color: #1a1a1a;
   color: #fff;
   font-weight: 500;
@@ -21,6 +21,6 @@ body.bg-body {
   transition: background-color 0.2s ease;
 }
 
-.revolut-btn:hover {
+.shortener-btn:hover {
   background-color: #000;
 }
