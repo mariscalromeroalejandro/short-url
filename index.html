@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Revolut Style - URL Shortener</title>
+    <title>URL Shortener</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -44,6 +44,31 @@
                 placeholder="e.g. my-custom-link"
               />
             </div>
+
+            <!-- New checkbox for expiry -->
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="setExpiry" />
+              <label class="form-check-label" for="setExpiry"
+                >Set expiry date</label
+              >
+            </div>
+
+            <!-- Number input for expiry days, initially hidden -->
+            <div class="mb-3 d-none" id="expiryDaysContainer">
+              <label for="expiryDays" class="form-label text-muted"
+                >Number of days until expiry</label
+              >
+              <input
+                type="number"
+                class="form-control form-control-lg"
+                id="expiryDays"
+                min="1"
+                max="365"
+                value="7"
+                placeholder="Days"
+              />
+            </div>
+
             <button type="submit" class="btn revolut-btn w-100">
               Shorten URL
             </button>
@@ -83,10 +108,24 @@
             longUrlFeedback.textContent = 'Please enter a valid URL.';
           }
         });
+
+        // Show/hide expiry days input based on checkbox
+        const setExpiryCheckbox = document.getElementById('setExpiry');
+        const expiryDaysContainer = document.getElementById(
+          'expiryDaysContainer'
+        );
+
+        setExpiryCheckbox.addEventListener('change', () => {
+          if (setExpiryCheckbox.checked) {
+            expiryDaysContainer.classList.remove('d-none');
+          } else {
+            expiryDaysContainer.classList.add('d-none');
+          }
+        });
       </script>
 
       <footer class="text-center mt-5 text-muted small">
-        © 2025 RevolutShort — Built with FastAPI
+        © 2025 URL Short — Built with FastAPI
       </footer>
     </main>
 
@@ -96,28 +135,61 @@
       const shortUrlText = document.getElementById('shortUrlText');
       const copyBtn = document.getElementById('copyBtn');
 
+      window.addEventListener('load', () => {
+        form.reset(); // resetea todos los campos, incluyendo checkbox
+        expiryDaysContainer.classList.add('d-none'); // oculta input días
+        copyBtn.style.display = 'none'; // oculta botón copy
+        result.classList.add('d-none'); // oculta resultado
+      });
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const longUrl = document.getElementById('longUrl').value;
         const customAlias = document.getElementById('customAlias').value;
+        const setExpiry = document.getElementById('setExpiry').checked;
+
+        let exp_date = null;
+
+        if (setExpiry) {
+          const expiryDaysInput = document.getElementById('expiryDays');
+          const expiryDays = parseInt(expiryDaysInput.value, 10);
+
+          if (isNaN(expiryDays) || expiryDays < 1 || expiryDays > 365) {
+            alert('Please enter a valid number of days between 1 and 365.');
+            return;
+          }
+
+          const now = new Date();
+          now.setDate(now.getDate() + expiryDays);
+          exp_date = now.toISOString();
+        }
+
+        const payload = {
+          long_url: longUrl,
+          custom_alias: customAlias || null,
+        };
+
+        // Include expiry_date if set
+        if (exp_date) {
+          payload.expiry_date = exp_date;
+        }
 
         const res = await fetch('http://localhost:8000/api/urls', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            long_url: longUrl,
-            custom_alias: customAlias || null,
-          }),
+          body: JSON.stringify(payload),
         });
 
         const data = await res.json();
         result.classList.remove('d-none');
-
+        copyBtn.style.display = 'none';
         if (res.ok) {
           result.classList.remove('alert-danger');
           result.classList.add('alert-success');
           shortUrlText.textContent = data.short_url;
+          // Mostramos el botón copy solo si todo salió bien
+          copyBtn.style.display = 'inline-block';
         } else {
           result.classList.remove('alert-success');
           result.classList.add('alert-danger');

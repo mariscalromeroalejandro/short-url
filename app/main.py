@@ -1,6 +1,22 @@
-from aiocache import caches
 import os
+import logging
 
+from aiocache import caches
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.background import BackgroundScheduler
+
+from app.db import create_db_and_tables
+from app.api.urls import api_router, public_router
+from app.handlers.exception_handlers import add_exception_handlers
+from app.services.write_service import delete_expired_urls
+
+
+
+# ---------------------------
+# Redis Cache Configuration
+# ---------------------------
 caches.set_config({
     'default': {
         'cache': "aiocache.RedisCache",
@@ -15,19 +31,9 @@ caches.set_config({
 })
 
 
-
-
-from fastapi import FastAPI
-from app.db import create_db_and_tables
-from contextlib import asynccontextmanager
-import logging
-from app.api.urls import api_router, public_router
-from app.handlers.exception_handlers import add_exception_handlers
-from fastapi.middleware.cors import CORSMiddleware
-
-
-
-# Configurar logger con formato y nivel INFO
+# ---------------------------
+# Logger Configuration
+# ---------------------------
 logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
@@ -35,29 +41,36 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# ---------------------------
+# Lifespan Context Manager for DB Initialization
+# ---------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Context manager for FastAPI lifespan.
+    FastAPI lifespan context manager.
 
-    Initializes database tables before the app starts.
-    Logs success or failure.
-
-    If DB initialization fails, raises an exception to stop the app startup.
+    - Initializes database tables before the app starts.
+    - Logs success or failure.
+    - Raises exception to stop app startup if DB init fails.
     """
     try:
-        # create_db_and_tables() is synchronous, so call directly
-        create_db_and_tables()
+        create_db_and_tables()  # Synchronous function called directly
         logger.info("Database tables created successfully.")
         yield
     except Exception as e:
         logger.error(f"Failed to create database tables: {e}", exc_info=True)
-        # Re-raise exception to stop FastAPI startup if DB init fails
-        raise
+        raise  # Stop FastAPI startup on DB init failure
 
 
+# ---------------------------
+# Create FastAPI app instance
+# ---------------------------
 app = FastAPI(lifespan=lifespan)
 
+
+# ---------------------------
+# Middleware
+# ---------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -65,6 +78,18 @@ app.add_middleware(
     allow_methods=["*"],
 )
 
+
+# ---------------------------
+# Routes and Exception Handlers
+# ---------------------------
 add_exception_handlers(app)
+
 app.include_router(api_router, prefix="/api", tags=["URL Shortener"])
 app.include_router(public_router)
+
+# ----------------------------
+# Background Scheduler
+# ----------------------------
+scheduler = BackgroundScheduler()
+scheduler.add_job(delete_expired_urls, 'interval', minutes=1)
+scheduler.start()

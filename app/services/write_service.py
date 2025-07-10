@@ -10,6 +10,7 @@ from app.schemas.UrlCreateRequest import UrlCreateRequest
 from app.exceptions import DuplicatedAliasError
 from typing import Optional
 import os
+import logging
 
 
 BASE_URL = os.getenv('BASE_URL')
@@ -42,3 +43,14 @@ def generate_short_url(data: UrlCreateRequest) -> str:
         session.commit()
 
     return f"{BASE_URL}{code}"
+
+def delete_expired_urls():
+    now = datetime.now()
+    with Session(engine) as session:
+        expired_urls = session.exec(select(Url).where(Url.exp_date < now)).all()
+        logging.info(f"Found {len(expired_urls)} expired URLs")
+        for url in expired_urls:
+            logging.info(f"Deleting expired URL: {url.short_code} (expired at {url.exp_date})")
+            session.delete(url)
+        session.commit()
+

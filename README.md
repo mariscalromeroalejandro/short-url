@@ -8,7 +8,6 @@ A simple and efficient URL shortener service built with **FastAPI**, **Redis** a
 
 - 🔗 **Shorten long URLs**
 - ↪️ **Redirect to original URLs**
-- 📊 **Track usage statistics** (optional)
 
 ---
 
