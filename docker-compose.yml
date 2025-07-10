@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file: .env
+
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    env_file: .env
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  fastapi:
+    build: .
+    container_name: fastapi_app
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
+  redis_data:
