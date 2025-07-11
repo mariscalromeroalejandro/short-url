@@ -9,3 +9,7 @@ class NotFoundUrl(Exception):
 class InvalidUrlError(Exception):
     """Raised when the input URL is invalid or empty."""
     pass
+
+class InvalidExpiryDateError(Exception):
+    """Raised when the expiry date is in the past."""
+    pass

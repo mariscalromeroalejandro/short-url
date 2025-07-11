@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import UrlInput from './UrlInput';
 import CustomAliasInput from './CustomAliasInput';
 import ExpiryCheckbox from './ExpiryCheckbox';
@@ -15,6 +15,8 @@ export default function UrlShortenerForm() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [copyText, setCopyText] = useState('Copy');
+  const copyTimeoutRef = useRef(null);
+
 
   // Validar días de expiración solo si está activado
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function UrlShortenerForm() {
         setResult(null);
       }
     } catch {
-      setError('Network error');
+      setError('Network error. Please try again later.');
       setResult(null);
     }
   }
@@ -73,7 +75,12 @@ export default function UrlShortenerForm() {
     if (!result) return;
     navigator.clipboard.writeText(result).then(() => {
       setCopyText('Copied!');
-      setTimeout(() => setCopyText('Copy'), 2000);
+      // avoid race conditions
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => {
+        setCopyText('Copy');
+        copyTimeoutRef.current = null;
+      }, 2000);
     });
   }
 
@@ -86,6 +93,28 @@ export default function UrlShortenerForm() {
     const whatsappUrl = `https://wa.me/?text=${message}`;
     window.open(whatsappUrl, '_blank');
   }
+
+  function validateUrl(value) {
+    if (!value) return false;
+    try {
+      new URL(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  useEffect(() => {
+    setIsValidUrl(validateUrl(longUrl));
+  }, [longUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    }
+  }, [])
 
   return (
     <main className="container my-5">
@@ -126,8 +155,8 @@ export default function UrlShortenerForm() {
                 setResult(null);
                 setError(null);
               }}
-                      >
-                          Reset
+            >
+              Reset
             </button>
             <button
               type="submit"

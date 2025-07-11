@@ -1,6 +1,6 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from app.exceptions import DuplicatedAliasError, NotFoundUrl, InvalidUrlError
+from app.exceptions import DuplicatedAliasError, NotFoundUrl, InvalidUrlError, InvalidExpiryDateError
 
 def add_exception_handlers(app):
     @app.exception_handler(DuplicatedAliasError)
@@ -14,3 +14,9 @@ def add_exception_handlers(app):
     @app.exception_handler(InvalidUrlError)
     async def invalid_url_exception_handler(request: Request, exc: InvalidUrlError):
         return JSONResponse(status_code=400, content={"detail": "Invalid long URL provided."})
+
+    @app.exception_handler(InvalidExpiryDateError)
+    async def invalid_expiry_date_exception_handler(request: Request, exc: InvalidExpiryDateError):
+        return JSONResponse(status_code=400, content={"detail": "Invalid expiry date provided."})
+
+
